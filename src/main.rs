@@ -42,6 +42,8 @@ use crate::gtfs_setup::get_agency_id_from_short_name;
 use time::Time;
 use trips_arena::TripsArena;
 
+use rusqlite::Connection;
+
 const WALKING_SPEED: f64 = 1.42;
 const STRAIGHT_WALKING_SPEED: f64 = 1.25;
 pub const MIN_TRANSFER_SECONDS: f64 = 35.0;
@@ -109,31 +111,11 @@ fn main1() {
     println!("Elapsed: {}", time.elapsed().as_secs_f32());
 }
 
-fn main() -> Result<()> {
-    env_logger::builder()
-        .parse_filters("debug")
-        .parse_default_env()
-        .init();
-
-    if false {
-        let _result = elevation_script::main1().unwrap();
-        return Ok(());
-    }
-    if false {
-        main1();
-    } else {
-        let _rt = runtime::Builder::new_multi_thread()
-            .worker_threads(8)
-            .enable_io()
-            .build()
-            .unwrap();
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            web::main().await;
-        });
-    }
-
-    return Ok(())
+fn main() {
+    let conn = Connection::open("/Users/zhu/Documents/time2reachtest/data.db").unwrap();
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM nodes").unwrap();
+    let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
+    println!("Node count: {}", count);
 }
 
 fn setup_gtfs() -> (Gtfs1, Vec<Agency>) {

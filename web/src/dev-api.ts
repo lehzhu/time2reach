@@ -11,11 +11,9 @@ export const LOCAL_API: boolean = IS_LOCAL;
 // export const mvtUrl: string = apiUrl
 
 // export const baseUrl: string = LOCAL_API ? "http://localhost:3030" : apiUrl
-export const baseUrl: string = LOCAL_API ? "http://127.0.0.1:3030" : "https://map.henryn.ca/api/v2";
+export const baseUrl: string = LOCAL_API ? "http://127.0.0.1:3030" : "http://127.0.0.1:3030";
 
-export const mvtUrl: string = "https://map.henryn.ca/api/v2/mvt";
-
-// export const mvtUrl: string = LOCAL_API ? 'http://127.0.0.1:6767' : apiUrl
+export const mvtUrl: string = LOCAL_API ? 'http://127.0.0.1:3030' : 'http://127.0.0.1:3030';
 
 // @ts-expect-error window
 window.sa_metadata = { local: LOCAL_API };

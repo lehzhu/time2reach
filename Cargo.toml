@@ -32,7 +32,7 @@ reqwest = "0.11.25"
 rusqlite = "0.31.0"
 
 [workspace]
-members = ["gtfs-structure", "gtfs-structure-2", "bike", "petgraph"]
+members = ["gtfs-structure", "gtfs-structure-2", "bike", "petgraph", "test2"]
 
 [features]
 default = []

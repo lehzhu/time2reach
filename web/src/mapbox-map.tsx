@@ -26,7 +26,7 @@ function addMVTLayer(currentMap: mapboxgl.Map) {
     currentMap.addSource(TRANSIT_LAYER_ID, {
         type: "vector",
         // Use extension .bin to enable Cloudflare caching (doesn't cache on .pbf extension)
-        tiles: [`${mvtUrl}/all_cities/{z}/{x}/{y}.bin`],
+        tiles: [`${mvtUrl}/mvt/{z}/{x}/{y}.bin`],
     });
 
     currentMap.addLayer({

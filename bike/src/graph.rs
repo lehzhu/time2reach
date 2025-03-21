@@ -102,7 +102,7 @@ fn parse_to_hashmap(input: &str) -> HashMap<String, String> {
 
 impl Graph {
     pub fn new() -> Self {
-        let conn = Connection::open("california-big.db").unwrap();
+        let conn = Connection::open("data.db").unwrap();
         let mut graph = AGraph::new_undirected();
         let mut node_indices: HashMap<usize, NodeIndex> = HashMap::new();
 
