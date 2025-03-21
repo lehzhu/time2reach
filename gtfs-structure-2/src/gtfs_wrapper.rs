@@ -403,17 +403,39 @@ pub fn vec_to_hashmap<T, F: Fn(&T) -> IdType>(vec: Vec<T>, accessor: F) -> FxHas
 }
 
 fn convert_shapes(mut shape: Vec<Shape>) -> FxHashMap<IdType, Vec<Shape>> {
-    shape.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut result: FxHashMap<IdType, Vec<Shape>> = FxHashMap::default();
+    
+    // Sort shapes by ID and sequence
+    shape.sort_by(|a, b| {
+        let id_cmp = a.id.cmp(&b.id);
+        if id_cmp == std::cmp::Ordering::Equal {
+            a.sequence.cmp(&b.sequence)
+        } else {
+            id_cmp
+        }
+    });
 
-    let mut answer = FxHashMap::default();
-    for shape_seq in shape.group_by(|a, b| a.id == b.id) {
-        let shape_id = shape_seq[0].id;
-        let mut shape_vec = shape_seq.to_vec();
-        shape_vec.sort_by(|a, b| a.sequence.cmp(&b.sequence));
-        answer.insert(shape_id, shape_vec);
+    // Group shapes by ID
+    let mut current_id = None;
+    let mut current_group = Vec::new();
+    
+    for s in shape {
+        if Some(s.id) != current_id {
+            if let Some(id) = current_id {
+                result.insert(id, current_group);
+            }
+            current_id = Some(s.id);
+            current_group = Vec::new();
+        }
+        current_group.push(s);
+    }
+    
+    // Add the last group
+    if let Some(id) = current_id {
+        result.insert(id, current_group);
     }
 
-    answer
+    result
 }
 impl From<Gtfs0WithCity> for Gtfs1 {
     fn from(mut b: Gtfs0WithCity) -> Self {

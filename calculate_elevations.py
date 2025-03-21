@@ -1,6 +1,6 @@
 import functools
 import os.path
-
+import csv
 import math
 import requests
 from osgeo import osr, gdal, ogr
@@ -244,7 +244,108 @@ def add_elevation_to_db(filename: str, dbname: str):
     conn.commit()
     conn.close()
 
+def create_json_from_gtfs(gtfs_dir: str) -> dict:
+    # Read stops.txt to create nodes
+    nodes = []
+    node_id_counter = 0
+    node_id_map = {}  # Map stop_id to node_id
+    
+    with open(os.path.join(gtfs_dir, 'stops.txt'), 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            node_id = node_id_counter
+            node_id_map[row['stop_id']] = node_id
+            nodes.append({
+                'id': node_id,
+                'lat': float(row['stop_lat']),
+                'lon': float(row['stop_lon'])
+            })
+            node_id_counter += 1
+    
+    # Create edges between consecutive stops in trips
+    edges = []
+    edge_id_counter = 0
+    processed_pairs = set()
+    
+    # Read stop_times.txt to create edges
+    trip_stops = {}
+    with open(os.path.join(gtfs_dir, 'stop_times.txt'), 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            trip_id = row['trip_id']
+            if trip_id not in trip_stops:
+                trip_stops[trip_id] = []
+            trip_stops[trip_id].append({
+                'stop_id': row['stop_id'],
+                'stop_sequence': int(row['stop_sequence'])
+            })
+    
+    # Process each trip to create edges
+    for trip_id, stops in trip_stops.items():
+        # Sort stops by sequence
+        stops.sort(key=lambda x: x['stop_sequence'])
+        
+        # Create edges between consecutive stops
+        for i in range(len(stops) - 1):
+            stop_a = stops[i]['stop_id']
+            stop_b = stops[i + 1]['stop_id']
+            node_a = node_id_map[stop_a]
+            node_b = node_id_map[stop_b]
+            
+            # Create edge only if this pair hasn't been processed
+            edge_pair = tuple(sorted([node_a, node_b]))
+            if edge_pair not in processed_pairs:
+                processed_pairs.add(edge_pair)
+                
+                # Calculate distance between nodes
+                node_a_data = nodes[node_a]
+                node_b_data = nodes[node_b]
+                lat1, lon1 = node_a_data['lat'], node_a_data['lon']
+                lat2, lon2 = node_b_data['lat'], node_b_data['lon']
+                
+                # Simple distance calculation (can be improved)
+                R = 6371000  # Earth's radius in meters
+                dlat = math.radians(lat2 - lat1)
+                dlon = math.radians(lon2 - lon1)
+                a = (math.sin(dlat/2) * math.sin(dlat/2) +
+                     math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+                     math.sin(dlon/2) * math.sin(dlon/2))
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                distance = R * c
+                
+                edges.append({
+                    'id': edge_id_counter,
+                    'nodeA': node_a,
+                    'nodeB': node_b,
+                    'dist': distance,
+                    'kvs': {},
+                    'points': [
+                        {'lat': lat1, 'lon': lon1},
+                        {'lat': lat2, 'lon': lon2}
+                    ]
+                })
+                edge_id_counter += 1
+    
+    return {
+        'nodes': nodes,
+        'edges': edges
+    }
+
 if __name__ == "__main__":
     import os
-    # create_db_and_tables("elevation-big.db")
-    add_elevation_to_db("/Users/henry/graphhopper/norcal-big.json", "/Users/henry/graphhopper/california-big.db")
+    gtfs_dir = "city-gtfs/london"
+    network_data = create_json_from_gtfs(gtfs_dir)
+    
+    # Create database and tables
+    create_db_and_tables("data.db")
+    
+    # Save network data to temporary JSON file
+    temp_json = "temp_network.json"
+    with open(temp_json, 'w') as f:
+        json.dump(network_data, f)
+    
+    # Process the network data
+    add_elevation_to_db(temp_json, "data.db")
+    
+    # Clean up temporary file
+    os.remove(temp_json)

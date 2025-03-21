@@ -1,8 +1,3 @@
-#![feature(trivial_bounds)]
-#![feature(slice_group_by)]
-#![feature(file_create_new)]
-#![feature(vec_into_raw_parts)]
-
 use anyhow::Result;
 mod agencies;
 mod best_times;
@@ -121,13 +116,13 @@ fn main() -> Result<()> {
         .init();
 
     if false {
-        let result = elevation_script::main1().unwrap();
+        let _result = elevation_script::main1().unwrap();
         return Ok(());
     }
     if false {
         main1();
     } else {
-        let rt = runtime::Builder::new_multi_thread()
+        let _rt = runtime::Builder::new_multi_thread()
             .worker_threads(8)
             .enable_io()
             .build()

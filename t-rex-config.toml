@@ -4,7 +4,7 @@
 viewer = false
 
 [[datasource]]
-dbconn = "postgresql://henry@localhost:5432/data"
+dbconn = "sqlite:///Users/zhu/Documents/time2reachtest/data.db"
 name = "dbconn"
 default = true
 connection_timeout=30000000000
@@ -55,7 +55,7 @@ query_limit = 1000000000
 # endpoint="s3.us-east-1.amazonaws.com"
 
 [cache.file]
-base = "/Users/henry/timetoreach/vancouver-cache"
+base = "/Users/zhu/Documents/time2reachtest/cache"
 baseurl = "http://example.com/tiles"
 
 

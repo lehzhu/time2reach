@@ -28,6 +28,7 @@ export const CITY_LOCATION = {
     Paris: new mapboxgl.LngLat(2.3522, 48.8566),
     "San Francisco": new mapboxgl.LngLat(-122.4194, 37.7749),
     Chicago: new mapboxgl.LngLat(-87.6298, 41.8781),
+    London: new mapboxgl.LngLat(-81.2453, 42.9849),
 };
 
 export function MapboxGLCanvasBrightnessHack({ brightness }: { brightness: number }) {
@@ -96,7 +97,8 @@ export function Time2ReachApp() {
                         // "Kitchener-Waterloo",
                         "San Francisco",
                         "Paris",
-                        "Chicago"
+                        "Chicago",
+                        "London"
                     ]}
                     setLocation={setCityFromPill}
                     currentCity={currentCity}
