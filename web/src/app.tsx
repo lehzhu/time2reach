@@ -20,15 +20,7 @@ export const BrightnessContext = React.createContext<BrightnessContextInt>({
 });
 
 export const CITY_LOCATION = {
-    Toronto: new mapboxgl.LngLat(-79.37988, 43.688622),
-    "New York City": new mapboxgl.LngLat(-74.006, 40.7518),
-    Montreal: new mapboxgl.LngLat(-73.5674, 45.5019),
-    Vancouver: new mapboxgl.LngLat(-123.1207, 49.2827),
-    "Kitchener-Waterloo": new mapboxgl.LngLat(-80.4935412978086, 43.45134086953097),
-    Paris: new mapboxgl.LngLat(2.3522, 48.8566),
-    "San Francisco": new mapboxgl.LngLat(-122.4194, 37.7749),
-    Chicago: new mapboxgl.LngLat(-87.6298, 41.8781),
-    London: new mapboxgl.LngLat(-81.2453, 42.9849),
+    London: new mapboxgl.LngLat(-81.2453, 42.9849), // London, Canada coordinates
 };
 
 export function MapboxGLCanvasBrightnessHack({ brightness }: { brightness: number }) {
@@ -65,7 +57,7 @@ export function Time2ReachApp() {
 
     const path = decodeURIComponent(window.location.pathname).substring(1);
 
-    let DEFAULT_CITY = "New York City";
+    let DEFAULT_CITY = "London";
     if (path in CITY_LOCATION) {
         DEFAULT_CITY = path;
     }
@@ -89,17 +81,7 @@ export function Time2ReachApp() {
             {popupAccepted ? null : <WelcomePopup acceptedPopupCallback={setPopupAccepted} />}
             <BlurBackground enabled={!popupAccepted}>
                 <CityPillContainer
-                    cities={[
-                        "Toronto",
-                        "Montreal",
-                        "Vancouver",
-                        "New York City",
-                        // "Kitchener-Waterloo",
-                        "San Francisco",
-                        "Paris",
-                        "Chicago",
-                        "London"
-                    ]}
+                    cities={["London"]}
                     setLocation={setCityFromPill}
                     currentCity={currentCity}
                 />

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import mapboxgl, { type GeoJSONSource, type MapMouseEvent, type MapTouchEvent } from "mapbox-gl";
+import mapboxgl, { type GeoJSONSource, type MapMouseEvent, type MapTouchEvent, Map } from "mapbox-gl";
 import { ColorLegend, TimeColorMapper } from "./colors";
-import { mvtUrl } from "./dev-api";
+import { mvtUrl, baseUrl } from "./dev-api";
 import { getDetails, type DetailResponse } from "./get_data";
 import { DetailPopup, type TripDetailsTransit } from "./format-details";
 import track from "./analytics";
@@ -220,12 +220,20 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
         seconds: number
     } | null>(null);
 
-    timeDataRef.current = timeData;
+    // Store time data when it changes and log for debugging
+    useEffect(() => {
+        console.log("TimeData updated:", timeData ? "present" : "null");
+        if (timeData) {
+            console.log("Edge times count:", Object.keys(timeData.raw).length);
+        }
+        timeDataRef.current = timeData;
+    }, [timeData]);
 
     const getTimeData = (): TimeColorMapper => {
         if (timeDataRef.current != null) {
             return timeDataRef.current;
         } else {
+            console.error("TimeData is undefined right now");
             throw Error("TimeData is undefined right now");
         }
     };
@@ -244,7 +252,7 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
         if (mapContainer.current == null || map !== null) return;
 
         mapboxgl.accessToken =
-            "pk.eyJ1IjoiaGVucnkyODMzIiwiYSI6ImNsZjhxM2lhczF4OHgzc3BxdG54MHU4eGMifQ.LpZVW1YPKfvrVgmBbEqh4A";
+            "pk.eyJ1IjoicmV0c29hdCIsImEiOiJjbThjOWhvaWYwcTBoMmlxMXN1dWZ5bmxhIn0.kgjWFZWKPa_E7hqZKWexbQ"; // Replace with your Mapbox access token from https://account.mapbox.com/
 
         const mapInstance = new mapboxgl.Map({
             container: mapContainer.current,
@@ -281,6 +289,8 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
                 shouldRetry = true;
             }
             console.log("Error!! ", err);
+            // Ensure spinner is hidden on error
+            setSpinnerLoading(false);
         };
         map.once("error", handleError);
 
@@ -311,8 +321,17 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
 
         map.once("render", () => {
             // Takes some time for the map to update
-            setTimeout(() => { setSpinnerLoading(false); }, 300);
+            setTimeout(() => { 
+                setSpinnerLoading(false);
+                console.log("Spinner set to false after render");
+            }, 300);
         });
+
+        // Fallback to ensure spinner doesn't stay on forever
+        setTimeout(() => {
+            setSpinnerLoading(false);
+            console.log("Spinner set to false by fallback timer");
+        }, 3000);
     }, [paintProperty, mapboxLoading, rerender]);
 
     useEffect(() => {
@@ -332,4 +351,39 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
             <div ref={mapContainer} className="map w-screen h-screen overflow-none" />
         </Fragment>
     );
+}
+
+function getDetails(tcm: TimeColorMapper, lngLat: mapboxgl.LngLat, signal: AbortSignal): Promise<DetailResponse> {
+    // The data we're sending to our API
+    let postData = {};
+
+    if (tcm && tcm.request_id) {
+        postData = {
+            request_id: tcm.request_id,
+            lat: lngLat.lat,
+            lng: lngLat.lng,
+        };
+    } else {
+        console.log("Using mock data for details request since no request_id available");
+        postData = {
+            lat: lngLat.lat,
+            lng: lngLat.lng,
+            mock: true
+        };
+    }
+
+    return fetch(`${baseUrl}/details`, {
+        method: "POST",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postData),
+        signal,
+    }).then(async (response) => {
+        console.log("Got details response:", response.status);
+        const data = await response.json();
+        console.log("Details data:", data);
+        return data;
+    });
 }

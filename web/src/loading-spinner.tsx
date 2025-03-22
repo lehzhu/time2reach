@@ -1,12 +1,20 @@
 import { Fragment } from "react";
 
 export function LoadingSpinner({ display }) {
+    // Add logging to debug when spinner state changes
+    console.log("LoadingSpinner state:", display);
+    
     if (display) {
         return (
-            <div role="status" className="top-1/2 right-1/2 absolute z-50" id="loading-spinner">
+            <div 
+                role="status" 
+                className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50" 
+                id="loading-spinner"
+                style={{ pointerEvents: 'none' }}
+            >
                 <svg
                     aria-hidden="true"
-                    className="inline w-10 h-10 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                    className="inline w-16 h-16 text-gray-200 animate-spin fill-blue-600"
                     viewBox="0 0 100 101"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -20,6 +28,7 @@ export function LoadingSpinner({ display }) {
                         fill="currentFill"
                     />
                 </svg>
+                <span className="sr-only">Loading...</span>
             </div>
         );
     }

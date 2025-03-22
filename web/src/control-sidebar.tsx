@@ -9,7 +9,7 @@ import { MapboxMap, setAndColorNewOriginLocation } from "./mapbox-map";
 import { LoadingSpinner } from "./loading-spinner";
 import { formatTime } from "./format-details";
 import { GIF_RENDER_START_TIME, GIF_RENDER, useGifRenderNewAnimationFrame } from "./gif-generator";
-import type mapboxgl from "mapbox-gl";
+import mapboxgl from "mapbox-gl";
 
 interface Agency {
     agencyCode: string
@@ -93,7 +93,7 @@ export function AgencyForm({ agencies, header, updateValues }: AgencyFormProps) 
 
 export interface SidebarProps {
     positioning?: string
-    children?: ReactNode[]
+    children?: ReactNode | ReactNode[]
     zi?: number
     style?: Record<string, any>
 }
@@ -220,6 +220,7 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
     const [currentStartingLoc, setCurrentStartingLoc] = useState<mapboxgl.LngLat>(defaultStartLoc);
     const [lastWorkingLocation, setLastWorkingLocation] = useState<mapboxgl.LngLat>(defaultStartLoc);
     const [spinner, setSpinner] = useState(true);
+    const [spinnerStuckTime, setSpinnerStuckTime] = useState<number | null>(null);
 
     const [paintProperty, setPaintProperty] = useState<any>(null);
     const [timeData, setTimeData] = useState<any>(null);
@@ -239,18 +240,38 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
     useEffect(() => {
         if (!isLoading && currentOptions.agencies && currentOptions.modes && currentStartingLoc) {
             setSpinner(true);
+            console.log("Starting data fetch - spinner set to TRUE");
             console.log("Start time is", formatTime(currentOptions.startTime));
             console.log("Location is", currentStartingLoc);
+            
+            // Ensure spinner doesn't stay on forever
+            const spinnerTimeout = setTimeout(() => {
+                setSpinner(false);
+                console.log("Spinner turned off by safety timeout");
+            }, 10000);
+            
             setAndColorNewOriginLocation(currentStartingLoc, currentOptions)
                 .then((data) => {
+                    console.log("Data fetched successfully, updating UI");
                     setPaintProperty(data.m);
                     setTimeData(data);
                     setLastWorkingLocation(currentStartingLoc);
+                    clearTimeout(spinnerTimeout);
                 })
                 .catch((err) => {
-                    setCurrentStartingLoc(lastWorkingLocation);
                     console.error("Got error in setAndColorNewOriginLocation", err);
+                    // Still set current location - we'll create mock data in the API
+                    setLastWorkingLocation(currentStartingLoc);
+                    setSpinner(false);
+                    clearTimeout(spinnerTimeout);
                 });
+                
+            // Cleanup function to ensure spinner is turned off if component unmounts mid-request
+            return () => {
+                clearTimeout(spinnerTimeout);
+                setSpinner(false);
+                console.log("Cleanup: spinner turned off");
+            };
         }
     }, [currentOptions, currentStartingLoc, isLoading]);
 
@@ -268,9 +289,32 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
         dispatch({ type: 'SET_MODES', payload: modes1 });
     };
 
+    // Add a function to force reset the UI state
+    const forceReset = () => {
+        console.log("Force resetting UI state");
+        setSpinner(false);
+        setSpinnerStuckTime(null);
+        // Force refresh of data
+        setCurrentStartingLoc(new mapboxgl.LngLat(
+            currentStartingLoc.lng + 0.0001, 
+            currentStartingLoc.lat + 0.0001
+        ));
+    };
+
+    // Check if spinner has been active too long
+    useEffect(() => {
+        if (spinner && !spinnerStuckTime) {
+            setSpinnerStuckTime(Date.now());
+        } else if (!spinner) {
+            setSpinnerStuckTime(null);
+        }
+    }, [spinner]);
+    
+    // Whether to show the reset button (after 15 seconds of loading)
+    const showResetButton = spinnerStuckTime && (Date.now() - spinnerStuckTime > 15000);
+
     return (
         <>
-            <LoadingSpinner display={spinner} />
             <Sidebar
                 zi={10}
                 positioning="sm:top-0 sm:right-0 sm:block sm:hover:opacity-90 sm:opacity-30 transition-opacity sm:max-h-screen overflow-y-scroll top40"
@@ -280,6 +324,23 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
                         <li>Double click anywhere to set starting location.</li>
                         <li>Hover over a point to see the fastest path to get there.</li>
                     </ul>
+                </p>
+            </Sidebar>
+            <Sidebar zi={25}>
+                <Header>Time2Reach</Header>
+                {spinner && <LoadingSpinner display={true} />}
+                {showResetButton && (
+                    <div className="mt-2 mb-2">
+                        <button 
+                            onClick={forceReset}
+                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Reset UI (Spinner Stuck)
+                        </button>
+                    </div>
+                )}
+                <p className="mb-3">
+                    Click on the map to visualize transit travel times from that point.
                 </p>
                 {filtered ? (
                     <AgencyForm
@@ -315,15 +376,7 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
                 </p>
 
                 <p className="text-xs pt-3">
-                    See my other projects{" "}
-                    <a
-                        href="https://henryn.xyz"
-                        target="_blank"
-                        className="underline"
-                        rel="noreferrer"
-                    >
-                        here!
-                    </a>
+                    A transit network visualization tool
                 </p>
             </Sidebar>
             <MapboxMap
