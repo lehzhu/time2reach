@@ -111,11 +111,12 @@ export function Sidebar({ children, zi, positioning, style }: SidebarProps) {
 
 function getID(): string {
     // Check in localstorage for randomly generated ID string
-    let id = localStorage.getItem("time2reach-random-id");
+    let id = localStorage.getItem("routeranger-random-id");
     if (!id) {
         // Generate a 64 bit random id
-        id = (Math.random() * Math.pow(10, 18)).toString(10);
-        localStorage.setItem("time2reach-random-id", id);
+        id = Math.random().toString(36).substring(2);
+        id = id + Math.random().toString(36).substring(2);
+        localStorage.setItem("routeranger-random-id", id);
     }
 
     return id;
@@ -327,7 +328,7 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
                 </p>
             </Sidebar>
             <Sidebar zi={25}>
-                <Header>Time2Reach</Header>
+                <Header>RouteRanger</Header>
                 {spinner && <LoadingSpinner display={true} />}
                 {showResetButton && (
                     <div className="mt-2 mb-2">
@@ -371,7 +372,7 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
                         rel="me noreferrer"
                         className="underline"
                     >
-                        Github!
+                        GitHub
                     </a>
                 </p>
 

@@ -11,6 +11,7 @@ import { InformationIcon } from "./information-icon";
 import { type BrightnessContextInt } from "./time-slider";
 import { BikeMap } from "./bike";
 import { type JSX } from "react/jsx-runtime";
+import { GIF_RENDER } from "./gif-generator";
 
 export const BG_WHITE_COLOR = "bg-zinc-50";
 
@@ -46,13 +47,15 @@ export function App() {
     let component: JSX.Element;
     if (path === "/bike") {
         component = <BikeMap />;
+    } else if (GIF_RENDER) {
+        component = <div>GIF Generator Mode</div>;
     } else {
-        component = <Time2ReachApp />;
+        component = <RouteRangerApp />;
     }
     return <React.StrictMode>{component}</React.StrictMode>;
 }
 
-export function Time2ReachApp() {
+export function RouteRangerApp() {
     const queryClient = new QueryClient({});
 
     const path = decodeURIComponent(window.location.pathname).substring(1);

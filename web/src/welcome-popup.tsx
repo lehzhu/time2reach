@@ -54,8 +54,8 @@ export function WelcomePopup({ acceptedPopupCallback }) {
                     {/* Modal body */}
                     <div className="p-6 space-y-6 text-gray-500">
                         <p>
-                            <b>time2reach</b> is an interactive map that lets you see how far you
-                            can go just using public transit.
+                            <b>RouteRanger</b> is an interactive map that lets you see how far you
+                            can travel on public transit in a given amount of time.
                         </p>
                         <p>
                             <b>Double-click on the map to set your starting origin.</b> The map is
@@ -73,7 +73,8 @@ export function WelcomePopup({ acceptedPopupCallback }) {
                         <a
                             href="https://github.com/econaxis/time2reach"
                             target="_blank"
-                            rel="me noreferrer"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
                         >
                             <button
                                 data-modal-hide="defaultModal"
