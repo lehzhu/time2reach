@@ -23,7 +23,7 @@ export function MapboxWrapper(props: Props) {
         mapInitialized = true;
 
         mapboxgl.accessToken =
-            "pk.eyJ1IjoiaGVucnkyODMzIiwiYSI6ImNsZjhxM2lhczF4OHgzc3BxdG54MHU4eGMifQ.LpZVW1YPKfvrVgmBbEqh4A";
+            "pk.eyJ1IjoicmV0c29hdCIsImEiOiJjbThjOWhvaWYwcTBoMmlxMXN1dWZ5bmxhIn0.kgjWFZWKPa_E7hqZKWexbQ";
 
         const map1 = new mapboxgl.Map({
             container: mapContainer.current, // container ID
