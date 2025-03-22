@@ -115,84 +115,8 @@ fn main() {
     env_logger::init();
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        use tokio::io::AsyncBufReadExt;
-        use warp::Filter;
-        
-        // Create a simple route for API testing
-        let cors = warp::cors()
-            .allow_any_origin()
-            .allow_headers(vec!["content-type"])
-            .allow_methods(vec!["GET", "POST", "OPTIONS"]);
-        
-        let api_route = warp::path("api")
-            .and(warp::path("test"))
-            .and(warp::get())
-            .map(|| {
-                log::info!("API test endpoint called");
-                warp::reply::json(&serde_json::json!({
-                    "status": "ok",
-                    "message": "API is working correctly"
-                }))
-            })
-            .with(cors.clone());
-            
-        let mvt_route = warp::path("mvt")
-            .and(warp::path::param())
-            .and(warp::path::param())
-            .and(warp::path::param())
-            .map(|z: u32, x: u32, y: u32| {
-                log::info!("MVT endpoint called: z={}, x={}, y={}", z, x, y);
-                warp::reply::json(&serde_json::json!({
-                    "status": "ok",
-                    "tile": {
-                        "z": z,
-                        "x": x,
-                        "y": y
-                    }
-                }))
-            })
-            .with(cors.clone());
-        
-        let details_route = warp::path("details")
-            .and(warp::post())
-            .and(warp::body::json())
-            .map(|body: serde_json::Value| {
-                log::info!("Details endpoint called with body: {:?}", body);
-                warp::reply::json(&serde_json::json!({
-                    "status": "ok",
-                    "path": {
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "LineString",
-                            "coordinates": [
-                                [-0.1276, 51.5072],
-                                [-0.13, 51.51],
-                                [-0.14, 51.52]
-                            ]
-                        },
-                        "properties": {}
-                    },
-                    "details": [
-                        {
-                            "type": "transit",
-                            "mode": "bus",
-                            "line_name": "Test Bus",
-                            "start_time": 3600,
-                            "end_time": 4200,
-                            "start_point": [-0.1276, 51.5072],
-                            "end_point": [-0.14, 51.52]
-                        }
-                    ]
-                }))
-            })
-            .with(cors.clone());
-            
-        // Combine all routes
-        let routes = api_route.or(mvt_route).or(details_route);
-        
-        // Start the server
-        println!("Starting server on http://127.0.0.1:3030");
-        warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+        // Use the real web server that processes GTFS data
+        web::main().await;
     });
 }
 

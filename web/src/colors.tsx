@@ -133,12 +133,12 @@ export class TimeColorMapper {
             transfer_cost_secs: transferPenalty
         };
 
-        console.log("Attempting API call to fetch time data:", `${baseUrl}/details`);
+        console.log("Attempting API call to fetch time data:", `${baseUrl}/hello`);
         console.log("Request body:", body);
         
         try {
-            // Using the available /details endpoint with POST
-            const data = await fetch(`${baseUrl}/details`, {
+            // Use the real /hello endpoint which processes GTFS data
+            const data = await fetch(`${baseUrl}/hello`, {
                 method: "POST",
                 mode: "cors",
                 headers: {
@@ -155,26 +155,13 @@ export class TimeColorMapper {
                     const responseJson = await data.json();
                     console.log("API response received:", responseJson);
                     
-                    // Create mock edge times based on the path coordinates
-                    const edgeTimes: Record<string, number> = {};
-                    
-                    if (responseJson && responseJson.path && 
-                        responseJson.path.geometry && 
-                        responseJson.path.geometry.coordinates) {
+                    if (responseJson && responseJson.edge_times) {
+                        const edgeTimes = responseJson.edge_times;
+                        const requestId = responseJson.request_id;
                         
-                        // Use the path coordinates to create a visualization
-                        const coordinates = responseJson.path.geometry.coordinates;
-                        console.log(`Got ${coordinates.length} coordinates from path`);
-                        
-                        // Create edge times based on the coordinates
-                        for (let i = 1; i <= 100; i++) {
-                            // Generate times that radiate outward from the center
-                            const distanceFactor = i / 100;
-                            edgeTimes[i.toString()] = startTime + (distanceFactor * durationRange);
-                        }
-                        
+                        console.log(`Got ${Object.keys(edgeTimes).length} edge times from server`);
                         return new TimeColorMapper(
-                            "path_data", 
+                            requestId, 
                             edgeTimes, 
                             startTime, 
                             startTime + durationRange

@@ -1,30 +1,38 @@
-import { type TimeColorMapper } from "./colors";
-import { type LngLat } from "mapbox-gl";
 import { baseUrl } from "./dev-api";
-import { type TripDetailsTransit } from "@/format-details";
+import type { TripDetailsTransit } from './format-details';
+import type mapboxgl from "mapbox-gl";
 
 export interface DetailResponse {
-    details: TripDetailsTransit[]
-    path: GeoJSON.Feature
+    details: TripDetailsTransit[];
+    path: GeoJSON.Feature;
+    status: string;
 }
-export async function getDetails(data: TimeColorMapper, location: LngLat, signal: AbortSignal): Promise<DetailResponse> {
-    const body = {
-        request_id: data.request_id,
+
+export async function getDetails(requestId: any, lngLat: mapboxgl.LngLat, signal: AbortSignal): Promise<DetailResponse> {
+    // The data we're sending to our API
+    const postData = {
+        request_id: requestId,
         latlng: {
-            latitude: location.lat,
-            longitude: location.lng,
-        },
+            latitude: lngLat.lat,
+            longitude: lngLat.lng,
+        }
     };
-    const resp = await fetch(`${baseUrl}/details/`, {
+
+    console.log("Making details request:", postData);
+
+    const response = await fetch(`${baseUrl}/details`, {
         method: "POST",
-        mode: "cors",
         headers: {
-            Accept: "application/json",
+            "Accept": "application/json",
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
-        signal
+        body: JSON.stringify(postData),
+        signal,
     });
 
-    return await resp.json();
+    console.log("Got details response:", response.status);
+    const data = await response.json();
+    console.log("Details data:", data);
+    
+    return data;
 }

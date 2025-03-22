@@ -2,11 +2,11 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import mapboxgl, { type GeoJSONSource, type MapMouseEvent, type MapTouchEvent, Map } from "mapbox-gl";
 import { ColorLegend, TimeColorMapper } from "./colors";
 import { mvtUrl, baseUrl } from "./dev-api";
-import { getDetails, type DetailResponse } from "./get_data";
 import { DetailPopup, type TripDetailsTransit } from "./format-details";
 import track from "./analytics";
 import { installDoubleTap } from "./double-tap-recognizer";
 import { GIF_RENDER } from "@/gif-generator";
+import { getDetails, type DetailResponse } from "./get_data";
 
 export const defaultColor = "rgba(143,143,143,0.13)";
 
@@ -351,39 +351,4 @@ export function MapboxMap({ timeData, paintProperty, setLatLng, setSpinnerLoadin
             <div ref={mapContainer} className="map w-screen h-screen overflow-none" />
         </Fragment>
     );
-}
-
-function getDetails(tcm: TimeColorMapper, lngLat: mapboxgl.LngLat, signal: AbortSignal): Promise<DetailResponse> {
-    // The data we're sending to our API
-    let postData = {};
-
-    if (tcm && tcm.request_id) {
-        postData = {
-            request_id: tcm.request_id,
-            lat: lngLat.lat,
-            lng: lngLat.lng,
-        };
-    } else {
-        console.log("Using mock data for details request since no request_id available");
-        postData = {
-            lat: lngLat.lat,
-            lng: lngLat.lng,
-            mock: true
-        };
-    }
-
-    return fetch(`${baseUrl}/details`, {
-        method: "POST",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(postData),
-        signal,
-    }).then(async (response) => {
-        console.log("Got details response:", response.status);
-        const data = await response.json();
-        console.log("Details data:", data);
-        return data;
-    });
 }
