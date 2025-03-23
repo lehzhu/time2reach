@@ -180,7 +180,7 @@ fn process_coordinates(
         .filter_map(|ag| get_agency_id_from_short_name(ag))
         .collect();
 
-    let modes = include_modes
+    let modes: Vec<RouteType> = include_modes
         .iter()
         .filter_map(|x| RouteType::try_from(x.as_ref()).ok())
         .collect();
