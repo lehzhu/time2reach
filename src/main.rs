@@ -109,27 +109,33 @@ fn main1() {
     println!("Elapsed: {}", time.elapsed().as_secs_f32());
 }
 
-fn main() -> Result<()> {
-    env_logger::builder()
-        .parse_filters("debug")
-        .parse_default_env()
-        .init();
-
-    if false {
-        let result = elevation_script::main1().unwrap();
-        return Ok(());
-    }
-    if false {
-        main1();
+fn main() -> anyhow::Result<()> {
+    env_logger::init();
+    if cfg!(feature = "https") {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()?
+            .block_on(web::main())?;
+    } else if cfg!(feature = "all-cities") {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(32)
+            .build()?
+            .block_on(web::main())?;
     } else {
-        let rt = runtime::Builder::new_multi_thread()
-            .worker_threads(8)
-            .enable_io()
-            .build()?;
-
-        rt.block_on(async {
-            web::main().await
-        })?;
+        // Force regenerate London GTFS data
+        log::info!("Regenerating London GTFS data for fresh data");
+        
+        // Remove existing RKYV file 
+        if let Ok(_) = std::fs::remove_file("city-gtfs/london-1.rkyv") {
+            log::info!("Deleted existing London GTFS cache");
+        }
+        
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(12)
+            .enable_all()
+            .build()?
+            .block_on(web::main())?;
     }
 
     Ok(())

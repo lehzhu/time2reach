@@ -7,6 +7,7 @@ use gtfs_structure_2::gtfs_wrapper::{Gtfs1, StopTime, Trip};
 use gtfs_structure_2::IdType;
 use rstar::primitives::GeomWithData;
 use rstar::RTree;
+use rstar::PointDistance;
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeSet;
@@ -84,11 +85,44 @@ pub struct SpatialStopsWithTrips(pub RTree<GeomWithData<[f64; 2], StopsData>>);
 
 impl SpatialStopsWithTrips {
     pub fn is_near_point(&self, city: &City, point: LatLng) -> bool {
+        // Project the lat/lng to the proper coordinate system
         let xy = project_lng_lat(city, point.longitude, point.latitude);
-        self.0
-            .locate_within_distance(xy, 1000.0 * 1000.0)
-            .next()
-            .is_some()
+        
+        // Use a larger search radius for London, Canada
+        let search_distance_squared = match city {
+            City::London => 15000.0 * 15000.0, // 15km squared for London (much larger radius)
+            _ => 1000.0 * 1000.0             // 1km squared for other cities
+        };
+        
+        // Check if any stops are within the search distance
+        let found = self.0.locate_within_distance(xy, search_distance_squared).next().is_some();
+        
+        // Log the result for debugging
+        if found {
+            log::info!("Found nearby stops for {:?} at [{}, {}]", city, point.latitude, point.longitude);
+            
+            // For London, also log the distance to the nearest stop
+            if city == &City::London {
+                if let Some(nearest) = self.0.nearest_neighbor(&xy) {
+                    let dist = nearest.distance_2(&xy).sqrt();
+                    log::info!("Nearest London stop is {:.2}m away", dist);
+                }
+            }
+        } else {
+            log::warn!("No nearby stops found for {:?} at [{}, {}]", city, point.latitude, point.longitude);
+            
+            // For London, also check how far away the nearest stop is
+            if city == &City::London {
+                if let Some(nearest) = self.0.nearest_neighbor(&xy) {
+                    let dist = nearest.distance_2(&xy).sqrt();
+                    log::warn!("Nearest London stop is {:.2}m away (outside search radius of 15000m)", dist);
+                } else {
+                    log::warn!("No London stops found at all!");
+                }
+            }
+        }
+        
+        found
     }
 }
 
