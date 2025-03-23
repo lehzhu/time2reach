@@ -10,7 +10,52 @@ use crate::road_structure::EdgeId;
 use crate::{gtfs_setup, time_to_reach, trip_details, Gtfs1, RoadStructure, Time};
 use gtfs_structure_2::gtfs_wrapper::RouteType;
 
-use rustc_hash::{FxHashMap, FxHashSet};
+fn get_city_routes(city: String, ad: Arc<AllAppData>) -> Result<impl warp::Reply, warp::Rejection> {
+    // Convert city name to lowercase for case-insensitive matching
+    let city_lower = city.to_lowercase();
+    
+    // For now, we only support London
+    if city_lower != "london" {
+        return Ok(warp::reply::with_status(
+            warp::reply::json(&json!({
+                "error": "Only London routes are currently supported"
+            })),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
+    // Get city data for London
+    let city_data = match ad.ads.get(&City::London) {
+        Some(data) => data,
+        None => {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&json!({
+                    "error": "City data not found"
+                })),
+                StatusCode::NOT_FOUND,
+            ));
+        }
+    };
+
+    // Extract routes from GTFS data
+    let routes = city_data.gtfs.routes.iter().map(|(id, route)| {
+        json!({
+            "id": id,
+            "short_name": route.short_name,
+            "long_name": route.long_name,
+            "route_type": route.route_type,
+        })
+    }).collect::<Vec<_>>();
+
+    Ok(warp::reply::with_status(
+        warp::reply::json(&json!({
+            "city": "london",
+            "routes": routes
+        })),
+        StatusCode::OK,
+    ))
+}
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -434,6 +479,7 @@ pub async fn main() -> anyhow::Result<()> {
                 "version": "1.0",
                 "documentation": "/docs",
                 "endpoints": {
+                    "/city/{city}/routes": "GET - Get routes for a specific city",
                     "/bike": "POST - Calculate bike routes",
                     "/hello": "POST - Process coordinates and calculate reach times",
                     "/details": "POST - Get trip details",
@@ -454,6 +500,7 @@ pub async fn main() -> anyhow::Result<()> {
                     <p>This API provides routing and transit information services.</p>
                     <h2>Available Endpoints:</h2>
                     <ul>
+                        <li><code>GET /city/{city}/routes</code> - Get routes for a specific city (currently supports London)</li>
                         <li><code>POST /bike</code> - Calculate bike routes between two points</li>
                         <li><code>POST /hello</code> - Process coordinates and calculate reach times</li>
                         <li><code>POST /details</code> - Get detailed trip information</li>
@@ -464,6 +511,11 @@ pub async fn main() -> anyhow::Result<()> {
             )
         });
 
+    let city_routes = warp::get()
+        .and(warp::path!("city" / String / "routes"))
+        .and(with_appdata(appdata.clone()))
+        .and_then(get_city_routes);
+
     let routes = root
         .or(docs)
         .or(agencies_endpoint)
@@ -471,6 +523,7 @@ pub async fn main() -> anyhow::Result<()> {
         .or(mvt_endpoint)
         .or(hello)
         .or(bike_endpoint)
+        .or(city_routes)
         .with(cors_policy)
         .with(log);
 
