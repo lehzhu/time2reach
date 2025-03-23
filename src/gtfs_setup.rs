@@ -39,7 +39,7 @@ fn test_nj() {
 }
 pub fn initialize_gtfs_as_bson(path: &str, city: City) -> Vec<Gtfs1> {
     info!("Loading schedules for {path}");
-    let file = File::create_new(format!("{path}-1.rkyv"));
+    let file = File::create(format!("{path}-1.rkyv"));
 
     let result: Vec<Gtfs1> = if let Ok(mut file) = file {
         // if cfg!(feature = "prod") {

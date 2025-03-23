@@ -111,23 +111,6 @@ pub fn load_all_gtfs() -> FxHashMap<City, (Gtfs1, Vec<Agency>)> {
 
 pub fn gtfspaths() -> Vec<(&'static str, City)> {
     vec![
-        ("ttc", City::Toronto),
-        ("up_express", City::Toronto),
-        ("GO_GTFS", City::Toronto),
-        ("yrt", City::Toronto),
-        ("brampton", City::Toronto),
-        ("miway", City::Toronto),
-        ("waterloo_grt", City::Toronto),
-        ("nyc-subway", City::NewYorkCity),
-        ("nyc-bus", City::NewYorkCity),
-        ("nj-bus", City::NewYorkCity),
-        ("nj-rail", City::NewYorkCity),
-        ("path-nj-us", City::NewYorkCity),
-        ("vancouver-translink", City::Vancouver),
-        ("montreal", City::Montreal),
-        ("paris-all", City::Paris),
-        ("sanfran", City::SanFrancisco),
-        ("chicago", City::Chicago),
         ("london", City::London),
     ]
 }
