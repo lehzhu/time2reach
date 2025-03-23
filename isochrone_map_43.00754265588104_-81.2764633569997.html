@@ -1,0 +1,99 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Transit Travel Time from 43.00754265588104, -81.2764633569997</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <style>
+            body { margin: 0; padding: 0; }
+            #map { height: 100vh; width: 100%; }
+            .legend { padding: 6px 8px; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
+            .legend div { line-height: 18px; color: #555; }
+            .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+            // Initialize map
+            var map = L.map('map').setView([43.00754265588104, -81.2764633569997], 12);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            }).addTo(map);
+            
+            // Add marker for origin
+            L.marker([43.00754265588104, -81.2764633569997])
+                .bindPopup("<b>Origin</b><br>Your starting point")
+                .addTo(map);
+            
+            // Add time range circles
+            var timeRanges = {"0-15": {"color": "#00FF00", "stops": [{"name": "Downtown Terminal", "lat": 42.9837, "lng": -81.2497, "time": 8}, {"name": "Western University", "lat": 43.0096, "lng": -81.2737, "time": 10}, {"name": "Masonville Place", "lat": 43.0306, "lng": -81.2752, "time": 15}, {"name": "Commissioners & Wellington", "lat": 42.9918, "lng": -81.237, "time": 12}, {"name": "London Health Sciences Centre", "lat": 43.0125, "lng": -81.2765, "time": 8}, {"name": "Dundas & Richmond", "lat": 42.9854, "lng": -81.253, "time": 5}]}, "15-30": {"color": "#0000FF", "stops": [{"name": "Fanshawe College", "lat": 43.0127, "lng": -81.1996, "time": 20}, {"name": "White Oaks Mall", "lat": 42.9255, "lng": -81.2284, "time": 25}, {"name": "Victoria Hospital", "lat": 42.9639, "lng": -81.223, "time": 18}, {"name": "Westmount Mall", "lat": 42.9556, "lng": -81.2969, "time": 22}, {"name": "Argyle Mall", "lat": 42.9845, "lng": -81.1944, "time": 30}]}, "30-45": {"color": "#FF00FF", "stops": [{"name": "Hyde Park", "lat": 43.0169, "lng": -81.3309, "time": 35}]}, "45-60": {"color": "#FF0000", "stops": []}};
+            
+            // Create feature groups for each time range
+            var layers = {};
+            
+            // Add bus stops by time range
+            Object.keys(timeRanges).forEach(function(range) {
+                layers[range] = L.featureGroup().addTo(map);
+                
+                timeRanges[range].stops.forEach(function(stop) {
+                    L.circleMarker([stop.lat, stop.lng], {
+                        radius: 6,
+                        fillColor: timeRanges[range].color,
+                        color: "#000",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    })
+                    .bindPopup("<b>" + stop.name + "</b><br>Travel time: " + stop.time + " minutes")
+                    .addTo(layers[range]);
+                });
+            });
+            
+            // Add bus routes
+            var busRoutes = [{"name": "Route 2 - Dundas", "color": "#FF0000", "stops": [{"lat": 43.0075, "lng": -81.2765}, {"lat": 43.007, "lng": -81.27}, {"lat": 43.006, "lng": -81.26}, {"lat": 43.0, "lng": -81.255}, {"lat": 42.9854, "lng": -81.253}, {"lat": 42.9837, "lng": -81.2497}]}, {"name": "Route 6 - Richmond", "color": "#0000FF", "stops": [{"lat": 43.0075, "lng": -81.2765}, {"lat": 43.01, "lng": -81.276}, {"lat": 43.0125, "lng": -81.2765}, {"lat": 43.02, "lng": -81.277}, {"lat": 43.0306, "lng": -81.2752}]}, {"name": "Route 9 - Whitehills", "color": "#00AA00", "stops": [{"lat": 43.0075, "lng": -81.2765}, {"lat": 43.005, "lng": -81.28}, {"lat": 43.0025, "lng": -81.285}, {"lat": 43.0, "lng": -81.29}, {"lat": 42.995, "lng": -81.295}, {"lat": 42.9556, "lng": -81.2969}]}, {"name": "Route 13 - Wellington", "color": "#AA00AA", "stops": [{"lat": 43.0075, "lng": -81.2765}, {"lat": 43.005, "lng": -81.27}, {"lat": 43.0, "lng": -81.265}, {"lat": 42.995, "lng": -81.26}, {"lat": 42.9918, "lng": -81.237}, {"lat": 42.9837, "lng": -81.2497}]}];
+            
+            busRoutes.forEach(function(route) {
+                var points = route.stops.map(function(stop) {
+                    return [stop.lat, stop.lng];
+                });
+                
+                L.polyline(points, {
+                    color: route.color,
+                    weight: 5,
+                    opacity: 0.7
+                })
+                .bindPopup("<b>" + route.name + "</b>")
+                .addTo(map);
+            });
+            
+            // Add legend
+            var legend = L.control({position: 'bottomright'});
+            
+            legend.onAdd = function(map) {
+                var div = L.DomUtil.create('div', 'legend');
+                div.innerHTML += '<h4>Travel Time</h4>';
+                div.innerHTML += '<div><i style="background: #00FF00"></i> 0-15 minutes</div>';
+                div.innerHTML += '<div><i style="background: #0000FF"></i> 15-30 minutes</div>';
+                div.innerHTML += '<div><i style="background: #FF00FF"></i> 30-45 minutes</div>';
+                div.innerHTML += '<div><i style="background: #FF0000"></i> 45-60 minutes</div>';
+                div.innerHTML += '<h4>Bus Routes</h4>';
+                
+                busRoutes.forEach(function(route) {
+                    div.innerHTML += '<div><i style="background: ' + route.color + '"></i> ' + route.name + '</div>';
+                });
+                
+                return div;
+            };
+            
+            legend.addTo(map);
+        </script>
+    </body>
+    </html>
+    
