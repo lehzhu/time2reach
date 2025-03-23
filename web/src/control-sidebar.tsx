@@ -111,11 +111,11 @@ export function Sidebar({ children, zi, positioning, style }: SidebarProps) {
 
 function getID(): string {
     // Check in localstorage for randomly generated ID string
-    let id = localStorage.getItem("time2reach-random-id");
+    let id = localStorage.getItem("RouteRanger-random-id");
     if (!id) {
         // Generate a 64 bit random id
         id = (Math.random() * Math.pow(10, 18)).toString(10);
-        localStorage.setItem("time2reach-random-id", id);
+        localStorage.setItem("RouteRanger-random-id", id);
     }
 
     return id;
@@ -305,7 +305,7 @@ export function ControlSidebar({ defaultStartLoc, currentCity }: ControlSidebarP
                 <p className="text-xs border-t mt-6 pt-3">
                     Find this project on{" "}
                     <a
-                        href="https://github.com/econaxis/time2reach"
+                        href="https://github.com/econaxis/RouteRanger"
                         target="_blank"
                         rel="me noreferrer"
                         className="underline"

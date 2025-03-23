@@ -28,6 +28,7 @@ export const CITY_LOCATION = {
     Paris: new mapboxgl.LngLat(2.3522, 48.8566),
     "San Francisco": new mapboxgl.LngLat(-122.4194, 37.7749),
     Chicago: new mapboxgl.LngLat(-87.6298, 41.8781),
+    London: new mapboxgl.LngLat(-81.2497, 42.9849),
 };
 
 export function MapboxGLCanvasBrightnessHack({ brightness }: { brightness: number }) {
@@ -64,7 +65,7 @@ export function Time2ReachApp() {
 
     const path = decodeURIComponent(window.location.pathname).substring(1);
 
-    let DEFAULT_CITY = "New York City";
+    let DEFAULT_CITY = "London";
     if (path in CITY_LOCATION) {
         DEFAULT_CITY = path;
     }
@@ -89,14 +90,7 @@ export function Time2ReachApp() {
             <BlurBackground enabled={!popupAccepted}>
                 <CityPillContainer
                     cities={[
-                        "Toronto",
-                        "Montreal",
-                        "Vancouver",
-                        "New York City",
-                        // "Kitchener-Waterloo",
-                        "San Francisco",
-                        "Paris",
-                        "Chicago"
+                        "London"
                     ]}
                     setLocation={setCityFromPill}
                     currentCity={currentCity}
