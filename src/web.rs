@@ -85,9 +85,15 @@ fn process_coordinates(
     max_search_time: f64,
     transfer_cost_secs: u64,
 ) -> Result<Json, BadQuery> {
+    log::debug!(
+        "Starting process_coordinates with input: lat={}, lng={}, agencies={:?}, modes={:?}, start_time={}, max_search_time={}, transfer_cost_secs={}",
+        lat, lng, include_agencies, include_modes, start_time, max_search_time, transfer_cost_secs
+    );
     let city = check_city(&ad, lat, lng);
+    log::debug!("Checked city result: {:?}", city);
 
     if city.is_none() {
+        log::debug!("No matching city found for coordinates");
         return Err(BadQuery::from("Invalid city"));
     }
 
@@ -121,12 +127,15 @@ fn process_coordinates(
         .iter()
         .filter_map(|ag| get_agency_id_from_short_name(ag))
         .collect();
+    log::debug!("Filtered agency IDs: {:?}", agency_ids);
 
     let modes = include_modes
         .iter()
         .filter_map(|x| RouteType::try_from(x.as_ref()).ok())
         .collect();
+    log::debug!("Parsed route modes: {:?}", modes);
 
+    log::debug!("Starting generate_reach_times calculation");
     time_to_reach::generate_reach_times(
         gtfs,
         spatial_stops,
@@ -143,12 +152,16 @@ fn process_coordinates(
             modes,
         },
     );
+    log::debug!("Completed generate_reach_times calculation");
 
     let edge_times = rs.save();
+    log::debug!("Raw edge times from rs.save(): {:?}", edge_times);
+    
     let edge_times_object: FxHashMap<EdgeId, u32> = edge_times
         .into_iter()
         .map(|edge_time| (edge_time.edge_id, edge_time.time as u32))
         .collect();
+    log::debug!("Converted edge times map size: {}", edge_times_object.len());
 
     let rs_list_index = ad.rs_list.write().unwrap().push(rs);
     let request_id = RequestId {
