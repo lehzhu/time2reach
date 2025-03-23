@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use rusqlite::params;
+use rusqlite::{params, Error as SQLiteError};
+use anyhow::{Context, Result};
 
 use std::sync::Arc;
 use parking_lot::Mutex;
@@ -101,13 +102,14 @@ fn parse_to_hashmap(input: &str) -> HashMap<String, String> {
 }
 
 impl Graph {
-    pub fn new() -> Self {
-        let conn = Connection::open("california-big.db").unwrap();
+    pub fn new() -> Result<Self> {
+        let conn = Connection::open("london.db")
+            .context("Failed to open london.db. Please ensure the database file exists and has the correct permissions")?;
         let mut graph = AGraph::new_undirected();
         let mut node_indices: HashMap<usize, NodeIndex> = HashMap::new();
 
-
-        let mut statement = conn.prepare("SELECT node_id, lat, lon, ele FROM nodes").unwrap();
+        let mut statement = conn.prepare("SELECT node_id, lat, lon, ele FROM nodes")
+            .context("Failed to prepare nodes query. Please ensure the 'nodes' table exists with the correct schema")?;
         let node_iter = statement.query_map((), |row| {
             Ok(NodeWithId {
                 id: row.get(0)?,
@@ -117,7 +119,7 @@ impl Graph {
                     ele: row.get::<_, f64>(3)? as f32, // Cast to f32 as needed
                 },
             })
-        }).unwrap();
+        }).context("Failed to query nodes table")?;
 
         for node in node_iter {
             let node = node.unwrap(); // Handle errors as needed
@@ -126,7 +128,8 @@ impl Graph {
         }
 
         let mut filtered_edges: HashSet<usize> = HashSet::new();
-        let mut statement1 = conn.prepare("SELECT id, nodeA, nodeB, dist, kvs FROM edges").unwrap();
+        let mut statement1 = conn.prepare("SELECT id, nodeA, nodeB, dist, kvs FROM edges")
+            .context("Failed to prepare edges query. Please ensure the 'edges' table exists with the correct schema")?;
         let edge_iter = statement1.query_map((), |row| {
             let kvs_json: String = row.get(4)?;
             let kvs = parse_to_hashmap(&kvs_json);
@@ -152,7 +155,7 @@ impl Graph {
                 bike_friendly,
                 access_friendly,
             }))
-        }).unwrap();
+        }).context("Failed to query edges table")?;
 
         for edge_option in edge_iter {
             if let Some(edge) = edge_option.unwrap() { // Handle errors as needed
@@ -170,7 +173,7 @@ impl Graph {
         let db = Mutex::new(conn);
         let location_index = LocationIndex::new(&graph, &db);
 
-        Self { graph, location_index, db }
+        Ok(Self { graph, location_index, db })
     }
 }
 

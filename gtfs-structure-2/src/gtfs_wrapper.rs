@@ -13,6 +13,7 @@ use std::cell::RefCell;
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU16, Ordering};
+use itertools::Itertools;
 
 pub type LibraryGTFS = gtfs_structures::RawGtfs;
 
@@ -403,14 +404,16 @@ pub fn vec_to_hashmap<T, F: Fn(&T) -> IdType>(vec: Vec<T>, accessor: F) -> FxHas
 }
 
 fn convert_shapes(mut shape: Vec<Shape>) -> FxHashMap<IdType, Vec<Shape>> {
-    shape.sort_by(|a, b| a.id.cmp(&b.id));
-
     let mut answer = FxHashMap::default();
-    for shape_seq in shape.group_by(|a, b| a.id == b.id) {
-        let shape_id = shape_seq[0].id;
-        let mut shape_vec = shape_seq.to_vec();
-        shape_vec.sort_by(|a, b| a.sequence.cmp(&b.sequence));
-        answer.insert(shape_id, shape_vec);
+    
+    // Group shapes by their ID using itertools::group_by
+    for (_, group) in &shape.into_iter().group_by(|s| s.id) {
+        let mut shape_vec: Vec<Shape> = group.collect();
+        if !shape_vec.is_empty() {
+            let shape_id = shape_vec[0].id;
+            shape_vec.sort_by(|a, b| a.sequence.cmp(&b.sequence));
+            answer.insert(shape_id, shape_vec);
+        }
     }
 
     answer

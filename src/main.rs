@@ -1,8 +1,3 @@
-#![feature(trivial_bounds)]
-#![feature(slice_group_by)]
-#![feature(file_create_new)]
-#![feature(vec_into_raw_parts)]
-
 use anyhow::Result;
 mod agencies;
 mod best_times;
@@ -130,15 +125,14 @@ fn main() -> Result<()> {
         let rt = runtime::Builder::new_multi_thread()
             .worker_threads(8)
             .enable_io()
-            .build()
-            .unwrap();
-        let rt = tokio::runtime::Runtime::new().unwrap();
+            .build()?;
+
         rt.block_on(async {
-            web::main().await;
-        });
+            web::main().await
+        })?;
     }
 
-    return Ok(())
+    Ok(())
 }
 
 fn setup_gtfs() -> (Gtfs1, Vec<Agency>) {

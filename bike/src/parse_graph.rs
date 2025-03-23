@@ -14,18 +14,16 @@ use crate::graph::{Graph, Point};
 use crate::location_index::PointSnap;
 use crate::real_edge_weight::RouteOptions;
 
-pub fn main() {
-    let graph = Graph::new();
-
-    // let gj = point_list_geojson(&graph.graph);
-    // println!("{}", serde_json::to_string(&gj).unwrap());
+pub fn main() -> anyhow::Result<()> {
+    let graph = Graph::new().map_err(|e| anyhow::anyhow!("Failed to initialize graph: {}", e))?;
 
     // Replace these coordinates with your actual coordinates
     let start = Point { lat: 37.7791612, lon: -122.4351754, ele: 51.0 };
     let end = Point { lat: 37.758454, lon: -122.446772, ele: 149.0 };
 
-    let result = route(&graph, start, end, RouteOptions::default());
+    let result = route(&graph, start, end, RouteOptions::default())?;
     println!("{:?}", result);
+    Ok(())
 }
 
 #[derive(Serialize, Debug, Default)]
@@ -229,6 +227,10 @@ fn get_finish_condition<'a>(graph: &'a Graph, end_nodes: &'a [NodeIndex]) -> imp
 }
 
 pub fn route(graph: &Graph, start: Point, end: Point, options: RouteOptions) -> anyhow::Result<RouteResponse> {
+    if graph.graph.node_count() == 0 {
+        return Err(anyhow::anyhow!("Graph is empty - no nodes loaded"));
+    }
+
     // Find the nearest nodes in the graph to the specified coordinates
     let (start_snap, start_nodes) = find_nearest_nodes(&graph, &start);
     let (end_snap, end_nodes) = find_nearest_nodes(&graph, &end);

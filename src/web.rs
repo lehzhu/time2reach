@@ -33,7 +33,7 @@ use warp::hyper::StatusCode;
 use warp::log::{Info, Log};
 use warp::path::{Tail};
 use warp::reject::Reject;
-use warp::reply::Json;
+use warp::reply::{Json, WithStatus};
 use warp::reply::Response;
 use warp::{Filter, Rejection, Reply};
 
@@ -285,22 +285,30 @@ pub fn bike_endpoints(appdata: Arc<AllAppData>) -> impl Filter<Extract = impl Re
         .and(with_appdata(appdata.clone()))
         .and(warp::path!("bike"))
         .and(warp::body::json())
-        .map(|ad: Arc<AllAppData>, req: serde_json::Value | {
-            let req: BikeCalculateRequest = serde_json::from_value(req).with_context(|| "JSON Deserialization Error")?;
+        .and_then(|ad: Arc<AllAppData>, req: serde_json::Value| async move {
+            let req: BikeCalculateRequest = serde_json::from_value(req)
+                .map_err(|_| warp::reject::custom(BadQuery::from("Invalid request format")))?;
 
-            route(
+            let result: Result<RouteResponse, _> = route(
                 &ad.bikegraph,
                 req.start.into(),
                 req.end.into(),
                 req.options.unwrap_or_default()
-            )
-        })
-        .map(|r: anyhow::Result<RouteResponse>| match r {
-            Ok(a) => warp::reply::json(&a).into_response(),
-            Err(e) => warp::reply::with_status(format!("{:#}", e), StatusCode::BAD_REQUEST).into_response(),
+            );
+
+            Ok::<WithStatus<Json>, Rejection>(match result {
+                Ok(response) => warp::reply::with_status(
+                    warp::reply::json(&response),
+                    StatusCode::OK,
+                ),
+                Err(e) => warp::reply::with_status(
+                    warp::reply::json(&json!({ "error": e.to_string() })),
+                    StatusCode::BAD_REQUEST,
+                ),
+            })
         })
 }
-pub async fn main() {
+pub async fn main() -> anyhow::Result<()> {
     let all_gtfs = load_all_gtfs();
     let agencies: Vec<Agency> = all_gtfs.values().flat_map(|a| &a.1).cloned().collect();
     println!("Agencies is {:?}", agencies);
@@ -315,10 +323,10 @@ pub async fn main() {
         let (city, ad) = result.unwrap();
         all_gtfs.insert(city, ad);
     }
-    let appdata = Arc::new(AllAppData { ads: all_gtfs, bikegraph: Graph::new() });
+    let bikegraph = Graph::new().context("Failed to initialize bike graph")?;
+    let appdata = Arc::new(AllAppData { ads: all_gtfs, bikegraph });
 
     let bike_endpoint = bike_endpoints(appdata.clone());
-
     let cors_policy = warp::cors()
         .allow_any_origin()
         .allow_headers(vec![
@@ -329,9 +337,12 @@ pub async fn main() {
             "Content-Type",
             "content-type",
             "content-length",
-            "date"
+            "date",
+            "Authorization",
+            "Cache-Control"
         ])
-        .allow_methods(["POST", "GET"]);
+        .allow_methods(["POST", "GET", "OPTIONS"])
+        .max_age(3600);
 
     let log = weblog("warp");
     let hello = warp::post()
@@ -410,7 +421,48 @@ pub async fn main() {
             response
         });
 
-    let routes = agencies_endpoint
+    // Root route handler
+    let root = warp::path::end()
+        .and(warp::get())
+        .map(|| {
+            let response = json!({
+                "name": "Time2Reach API",
+                "version": "1.0",
+                "documentation": "/docs",
+                "endpoints": {
+                    "/bike": "POST - Calculate bike routes",
+                    "/hello": "POST - Process coordinates and calculate reach times",
+                    "/details": "POST - Get trip details",
+                    "/agencies": "GET - List available transit agencies",
+                    "/mvt": "GET - Get map vector tiles"
+                }
+            });
+            warp::reply::with_status(warp::reply::json(&response), StatusCode::OK)
+        });
+
+    // Documentation route
+    let docs = warp::path("docs")
+        .and(warp::get())
+        .map(|| {
+            warp::reply::html(
+                "<html><body>
+                    <h1>Time2Reach API Documentation</h1>
+                    <p>This API provides routing and transit information services.</p>
+                    <h2>Available Endpoints:</h2>
+                    <ul>
+                        <li><code>POST /bike</code> - Calculate bike routes between two points</li>
+                        <li><code>POST /hello</code> - Process coordinates and calculate reach times</li>
+                        <li><code>POST /details</code> - Get detailed trip information</li>
+                        <li><code>GET /agencies</code> - List all available transit agencies</li>
+                        <li><code>GET /mvt</code> - Get map vector tiles</li>
+                    </ul>
+                </body></html>"
+            )
+        });
+
+    let routes = root
+        .or(docs)
+        .or(agencies_endpoint)
         .or(details)
         .or(mvt_endpoint)
         .or(hello)
@@ -428,4 +480,5 @@ pub async fn main() {
     } else {
         warp::serve(routes.clone()).run(([0, 0, 0, 0], 3030)).await;
     }
+    Ok(())
 }
