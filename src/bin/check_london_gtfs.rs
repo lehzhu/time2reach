@@ -1,8 +1,8 @@
-use crate::agencies::City;
-use crate::gtfs_setup::initialize_gtfs_as_bson;
+use timetoreach_lib::agencies::City;
+use timetoreach_lib::gtfs_setup::initialize_gtfs_as_bson;
 use std::fs::File;
 use std::io::Read;
-use crate::gtfs_processing::StopsWithTrips;
+use timetoreach_lib::gtfs_processing::StopsWithTrips;
 
 fn main() {
     // Load London GTFS data
@@ -38,7 +38,7 @@ fn main() {
             println!("  Generated shapes: {}", gtfs.generated_shapes.len());
 
             // Create stops with trips to check if they can be processed
-            let stops_with_trips = crate::gtfs_setup::generate_stops_trips(gtfs);
+            let stops_with_trips = timetoreach_lib::gtfs_setup::generate_stops_trips(gtfs);
             
             // Check the number of stops with scheduled trips
             println!("  Stops with trips: {}", stops_with_trips.0.len());

@@ -1,5 +1,5 @@
-use timetoreach::agencies::City;
-use timetoreach::gtfs_setup::initialize_gtfs_as_bson;
+use timetoreach_lib::agencies::City;
+use timetoreach_lib::gtfs_setup::initialize_gtfs_as_bson;
 
 fn main() {
     println!("Generating .rkyv file for London");

@@ -1,6 +1,6 @@
 use std::fs;
-use crate::agencies::City;
-use crate::gtfs_setup::initialize_gtfs_as_bson;
+use timetoreach_lib::agencies::City;
+use timetoreach_lib::gtfs_setup::initialize_gtfs_as_bson;
 
 fn main() {
     println!("Regenerating London GTFS data");
