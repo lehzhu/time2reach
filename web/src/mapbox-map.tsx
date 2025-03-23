@@ -26,14 +26,15 @@ function addMVTLayer(currentMap: mapboxgl.Map) {
     currentMap.addSource(TRANSIT_LAYER_ID, {
         type: "vector",
         // Use extension .bin to enable Cloudflare caching (doesn't cache on .pbf extension)
-        tiles: [`${mvtUrl}/all_cities/{z}/{x}/{y}.bin`],
+        // Modified to only load London data instead of all cities
+        tiles: [`${mvtUrl}/london/{z}/{x}/{y}.bin`],
     });
 
     currentMap.addLayer({
         id: TRANSIT_LAYER_ID,
         type: "line",
         source: TRANSIT_LAYER_ID,
-        "source-layer": "all_cities",
+        "source-layer": "london", // Changed from all_cities to london to match backend expectation for London data
         layout: {
             "line-cap": "round",
             "line-join": "round",

@@ -12,7 +12,7 @@ import shapely.geometry
 from requests_futures.sessions import FuturesSession
 from shapely.geometry import Point
 
-from download_gpkg import SAN_FRAN, create_poly_from_geojson
+from download_gpkg import SAN_FRAN, LONDON, create_poly_from_geojson
 url = sys.argv[1]
 
 
@@ -67,7 +67,7 @@ TORONTO = (43.6532, -79.3832)
 PARIS_1 = (48.91191595093818, 2.1980415114905725)
 
 LONDON_1 = (51.672343, -0.148271)
-
+LONDON_2 = (51.507222, -0.127500)  # Central London
 SAN_FRANCISCO = (37.789407162468066, -122.35309872004174)
 SAN_FRANCISCO1 = (37.50211486594995, -122.10646136267307)
 SF2 = 37.7690145460696, -122.43082602680231
@@ -85,10 +85,11 @@ CHICAGO2 = 42.0965437845508, -87.73648980584558
 # to_explore.put(Explore.from_latlong(*TORONTO, 7))
 # to_explore.put(Explore.from_latlong(*SAN_FRANCISCO, 8))
 # to_explore.put(Explore.from_latlong(*SAN_FRANCISCO1, 8))
-to_explore.put(Explore.from_latlong(*SF3, 7))
-to_explore.put(Explore.from_latlong(*SF2, 7))
+# to_explore.put(Explore.from_latlong(*SF3, 7))
+# to_explore.put(Explore.from_latlong(*SF2, 7))
 
-# to_explore.put(Explore.from_latlong(*LONDON_1, 7))
+to_explore.put(Explore.from_latlong(*LONDON_1, 7))
+to_explore.put(Explore.from_latlong(*LONDON_2, 7))
 
 to_explore_calculated = set()
 MAX_ZOOM = 16
@@ -106,12 +107,12 @@ while not to_explore.empty():
         to_explore.put(Explore(cur_zoom, multiplier * explore.x + 1, multiplier * explore.y + 1))
 
 
-SF_POLY = create_poly_from_geojson(SAN_FRAN)
+LONDON_POLY = create_poly_from_geojson(LONDON)
 
 def pre_check(coord: Explore):
     latlng = tile_to_lat_lon_bounds(coord.x, coord.y, coord.zoom)
-    if SF_POLY.intersects(latlng):
-        return os.path.exists(f"vancouver-cache/all_cities/{coord.zoom}/{coord.x}/{coord.y}.pbf")
+    if LONDON_POLY.intersects(latlng):
+        return os.path.exists(f"city-gtfs/london/{coord.zoom}/{coord.x}/{coord.y}.pbf")
     else:
         return True
     # if os.path.exists(f"vancouver-cache/all_cities/{coord.zoom}/{coord.x}/{coord.y}.pbf"):

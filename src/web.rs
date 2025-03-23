@@ -250,7 +250,7 @@ fn get_file(str: Tail) -> anyhow::Result<Vec<u8>> {
 
     let str = parts[0];
 
-    if str != "all_cities" {
+    if str != "all_cities" && str != "london" {
         return Err(anyhow!("Invalid path"));
     }
 
@@ -259,7 +259,11 @@ fn get_file(str: Tail) -> anyhow::Result<Vec<u8>> {
     let x: u32 = parts[2].parse()?;
     let y: u32 = parts[3].parse()?;
 
-    let mut path = PathBuf::from("vancouver-cache");
+    let mut path = if str == "london" {
+        PathBuf::from("city-gtfs/london")
+    } else {
+        PathBuf::from("vancouver-cache")
+    };
     path.push(format!("{}/{}/{}/{}.pbf", str, z, x, y));
     // Read file from path
     println!("Trying to read at {path:?}");

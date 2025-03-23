@@ -1,0 +1,44 @@
+[service.mvt]
+viewer = true
+
+[[datasource]]
+dbconn = "postgresql://zhu@localhost:5432/time2reach"
+name = "london"
+default = true
+connection_timeout = 30000000000
+
+[grid]
+predefined = "web_mercator"
+cache_directory = "/Users/zhu/Documents/time2reachtest/city-gtfs/london"
+
+[[tileset]]
+name = "london"
+extent = [-0.510375, 51.28676, 0.334015, 51.691874]
+
+[[tileset.layer]]
+name = "nodes"
+table_name = "london_nodes"
+geometry_field = "geom" 
+geometry_type = "POINT"
+srid = 4326
+buffer_size = 10
+simplify = false
+query_limit = 1000000000
+
+[[tileset.layer]]
+name = "edges"
+table_name = "london_edges"
+geometry_field = "geom" 
+geometry_type = "LINESTRING"
+srid = 4326
+buffer_size = 10
+simplify = false
+query_limit = 1000000000
+
+[cache.file]
+base = "/Users/zhu/Documents/time2reachtest/city-gtfs/london"
+baseurl = "http://localhost:6767/tiles"
+
+[webserver]
+bind = "0.0.0.0"
+port = 6767
