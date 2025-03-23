@@ -130,7 +130,8 @@ export class TimeColorMapper {
             modes: objectToTrueValues(modes),
             startTime,
             maxSearchTime: durationRange,
-            transferPenaltySecs: transferPenalty
+            transferPenaltySecs: transferPenalty,
+            previousRequestId: null
         };
 
         let data;
