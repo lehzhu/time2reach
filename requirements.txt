@@ -1,3 +1,12 @@
-pandas
-gdal
-requests
+flask==2.3.3
+flask-cors==4.0.0
+gunicorn==21.2.0
+pandas==2.1.0
+geopandas==0.14.1
+shapely==2.0.2
+requests==2.31.0
+pyproj==3.6.1
+numpy==1.26.0
+partridge==1.1.2
+python-dotenv==1.0.0
+rtree==1.1.0
