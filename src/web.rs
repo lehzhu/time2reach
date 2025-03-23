@@ -85,7 +85,6 @@ fn process_coordinates(
     max_search_time: f64,
     transfer_cost_secs: u64,
 ) -> Result<Json, BadQuery> {
-    log::info!("Processing coordinates: lat={}, lng={}", lat, lng);
     let city = check_city(&ad, lat, lng);
 
     if city.is_none() {
@@ -98,30 +97,6 @@ fn process_coordinates(
     }
     let city = city.unwrap();
     let ad = &ad.ads.get(&city).unwrap();
-
-    // Special validation for London's service area
-    if city == City::London {
-        const LONDON_BOUNDS: ((f64, f64), (f64, f64)) = (
-            (42.907337, -81.337689), // SW corner
-            (43.069337, -81.129689)  // NE corner
-        );
-        
-        if lat < LONDON_BOUNDS.0.0 || lat > LONDON_BOUNDS.1.0 ||
-           lng < LONDON_BOUNDS.0.1 || lng > LONDON_BOUNDS.1.1 {
-            log::warn!("Coordinates ({}, {}) outside London's service area", lat, lng);
-            return Err(BadQuery::from("Coordinates outside service area"));
-        }
-        
-        // Log route information for London
-        let route_count = ad.gtfs.routes.as_ref().map_err(|e| BadQuery::from(e.to_string()))?.len();
-        let stop_count = ad.gtfs.stops.as_ref().map_err(|e| BadQuery::from(e.to_string()))?.len();
-        log::info!("London GTFS data: {} routes, {} stops", route_count, stop_count);
-        
-        // Log available route details
-        for (route_id, route) in ad.gtfs.routes.as_ref().map_err(|e| BadQuery::from(e.to_string()))?.iter() {
-            log::debug!("Route {:?}: {} ({})", route_id, route.short_name, route.long_name);
-        }
-    }
 
     let cache_key = match check_cache(
         ad,
@@ -142,109 +117,17 @@ fn process_coordinates(
     let rs_template = ad.rs_template.clone();
     let mut rs = RoadStructure::new_from_road_structure(rs_template);
 
-    let agency_ids: FxHashSet<u16> = if include_agencies.is_empty() {
-        // If no agencies specified, include all agencies for the city
-        log::debug!("No agencies specified, including all agencies for {:?}", city);
-        gtfs.agencies
-            .iter()
-            .map(|(id, _)| *id)
-            .collect()
-    } else {
-        // Use specified agencies
-        let ids: FxHashSet<u16> = include_agencies
-            .iter()
-            .filter_map(|ag| get_agency_id_from_short_name(ag))
-            .collect();
-        log::debug!("Processing specific agencies: {:?}", ids);
-        ids
-    };
-
-    log::debug!("Final agency_ids being processed: {:?}", agency_ids);
-
-    // Log the modes being processed
-    log::info!("Processing modes: {:?}", include_modes);
-    
-    let modes: Vec<RouteType> = include_modes
+    let agency_ids: FxHashSet<u16> = include_agencies
         .iter()
-        .filter_map(|x| {
-            let route_type = RouteType::try_from(x.as_ref());
-            match route_type {
-                Ok(rt) => {
-                    log::debug!("Successfully mapped mode '{}' to RouteType", x);
-                    Some(rt)
-                }
-                Err(e) => {
-                    log::warn!("Failed to map mode '{}': {}", x, e);
-                    None
-                }
-            }
-        })
+        .filter_map(|ag| get_agency_id_from_short_name(ag))
         .collect();
 
-    if modes.is_empty() {
-        log::error!("No valid transit modes found in request");
-        return Err(BadQuery::from("No valid transit modes specified"));
-    }
-    
-    log::info!(
-        "Generating reach times with {} agencies and {} valid modes",
-        agency_ids.len(),
-        modes.len()
-    );
+    let modes = include_modes
+        .iter()
+        .filter_map(|x| RouteType::try_from(x.as_ref()).ok())
+        .collect();
 
-    // Validate that we have routes matching the requested modes
-    let matching_routes = gtfs.routes.iter().filter(|(_, route)| {
-        modes.contains(&route.route_type)
-    }).count();
-
-    log::info!("Found {} routes matching requested modes", matching_routes);
-
-    log::info!(
-        "Configuration for reach times: start_time={}, max_search_time={}, transfer_cost={}, coordinates=({}, {})",
-        start_time,
-        max_search_time,
-        transfer_cost_secs,
-        lat,
-        lng
-    );
-
-    // Log spatial stops info
-    log::info!(
-        "Spatial stops info: count={}, nearest stop distance={}",
-        spatial_stops.stops.len(),
-        spatial_stops.get_nearest_stop(lat, lng).map_or(-1.0, |s| s.1)
-    );
-
-    // Check if we have any stops within reasonable distance
-    let nearest_stop = spatial_stops.get_nearest_stop(lat, lng);
-    match nearest_stop {
-        Some((stop, distance)) => {
-            log::info!(
-                "Nearest stop: id={}, name={}, distance={}m",
-                stop.id,
-                stop.name,
-                distance
-            );
-            if distance > 1000.0 {  // 1km threshold
-                log::warn!("Nearest stop is too far ({} meters)", distance);
-                return Err(BadQuery::from("No transit stops within reasonable distance"));
-            }
-        },
-        None => {
-            log::error!("No stops found in spatial index");
-            return Err(BadQuery::from("No transit stops found in the area"));
-        }
-    }
-
-    // Log road structure information
-    use petgraph::visit::EdgeCount;
-    log::info!(
-        "Road structure initialized with {} edges",
-        rs.edge_count()
-    );
-
-    // Update the generate_reach_times call to capture and log any potential errors
-    let result = time_to_reach::generate_reach_times(
+    time_to_reach::generate_reach_times(
         gtfs,
         spatial_stops,
         &mut rs,
@@ -261,41 +144,11 @@ fn process_coordinates(
         },
     );
 
-    match result {
-        Ok(edge_times) => {
-            log::info!(
-                "Successfully generated {} reach times",
-                edge_times.len()
-            );
-            Ok(Json(json!({
-                "edge_times": edge_times,
-                "request_id": RequestId {
-                    rs_list_index: ad.rs_list.write().unwrap().push(rs),
-                    city,
-                }
-            })))
-        }
-        Err(e) => {
-            log::error!("Failed to generate reach times: {:?}", e);
-            Err(BadQuery::from(e.to_string().as_str()))
-        }
-    }
-
     let edge_times = rs.save();
     let edge_times_object: FxHashMap<EdgeId, u32> = edge_times
         .into_iter()
         .map(|edge_time| (edge_time.edge_id, edge_time.time as u32))
         .collect();
-
-    log::info!(
-        "Generated {} edge times for the request. First few edge times: {:?}",
-        edge_times_object.len(),
-        edge_times_object.iter().take(5).collect::<Vec<_>>()
-    );
-    if edge_times_object.is_empty() {
-        log::warn!("No edge times were generated for the request");
-        return Err(BadQuery::from("No reachable destinations found"));
-    }
 
     let rs_list_index = ad.rs_list.write().unwrap().push(rs);
     let request_id = RequestId {

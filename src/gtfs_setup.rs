@@ -6,42 +6,11 @@ use log::info;
 use rustc_hash::FxHashMap;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::collections::HashMap;
 
 use crate::agencies::City;
 use crate::gtfs_processing::StopsWithTrips;
 use crate::in_progress_trip::InProgressTrip;
 use std::sync::Mutex;
-
-fn print_gtfs_stats(city: &str, gtfs: &LibraryGTFS) -> Result<(), String> {
-    log::info!("GTFS Statistics for {}:", city);
-    log::info!("  Routes: {}", gtfs.routes.as_ref().map_err(|e| e.to_string())?.len());
-    log::info!("  Stops: {}", gtfs.stops.as_ref().map_err(|e| e.to_string())?.len());
-    log::info!("  Trips: {}", gtfs.trips.as_ref().map_err(|e| e.to_string())?.len());
-    
-    // Calculate total stop times with proper error handling
-    log::info!(
-        "  Stop times: {}",
-        gtfs.trips.as_ref()
-            .map_err(|e| e.to_string())?
-            .values()
-            .map(|t| t.stop_times.len())
-            .sum::<usize>()
-    );
-    
-    // Print route types distribution with proper error handling
-    let route_types: HashMap<_, _> = gtfs.routes
-        .as_ref()
-        .map_err(|e| e.to_string())?
-        .values()
-        .map(|r| (&r.route_type, 1))
-        .fold(HashMap::new(), |mut acc, (rt, count)| {
-            *acc.entry(rt).or_insert(0) += count;
-            acc
-        });
-    log::info!("  Route types: {:?}", route_types);
-    Ok(())
-}
 lazy_static! {
     static ref AGENCY_MAP: Mutex<FxHashMap<String, u16>> = Mutex::new(FxHashMap::default());
 }
@@ -79,9 +48,6 @@ pub fn initialize_gtfs_as_bson(path: &str, city: City) -> Vec<Gtfs1> {
         info!("GTFS not detected! Creating new {}", path);
 
         let library = LibraryGTFS::from_path(path).unwrap();
-        if let Err(e) = print_gtfs_stats(path, &library) {
-            log::warn!("Failed to print GTFS stats: {}", e);
-        }
 
         let gtfslist = split_by_agency(library)
             .into_iter()
